@@ -3,8 +3,8 @@ os:
   - osx
 language: generic
 sudo: required
-dist: trusty
-osx_image: xcode8.2
+dist: xenial
+osx_image: xcode8.3
 script:
-  - eval "$(curl -sL https://raw.githubusercontent.com/swixbase/ciscript/master/ci)"
+  - eval "$(curl -sL https://raw.githubusercontent.com/swixbase/ciscript/master/ci-3.1)"
   - eval "$(curl -sL https://raw.githubusercontent.com/swixbase/ciscript/master/codecov)"
