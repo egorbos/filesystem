@@ -28,7 +28,7 @@ public class FileHandler {
     /// Files open for processing.
     fileprivate var openFiles: [Int32: Int] = [:]
 
-    init() {}
+    public init() {}
 
     /// Close all open files and delete all write queues
     deinit {

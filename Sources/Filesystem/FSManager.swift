@@ -25,7 +25,7 @@ public class FSManager {
 
     // MARK: Properties, initialization, deinitialization
 
-    init() {}
+    public init() {}
 
     deinit {}
 
