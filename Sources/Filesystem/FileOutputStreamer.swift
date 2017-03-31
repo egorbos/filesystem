@@ -30,10 +30,11 @@ public class FileOutputStreamer {
 
     /// Initialization.
     ///
-    /// - Parameters:
-    ///   - file:  Path to the file in which it is necessary to make record.
+    /// - Parameter file:  Path to the file in which it is necessary to make record.
     ///
     /// - Throws: `FSError.openFileAtPathFailed`
+    ///
+    /// - Note: File would be created, if it doesn't exist.
     ///
     public init(file: String) throws {
         guard let os = fopen(file, "a+") else {
@@ -85,7 +86,7 @@ extension FileOutputStreamer {
     }
 
     /// Transfers all modified in-core data of (i.e., modified buffer cache pages for)
-    /// the file referred to by the file descriptor fd to the disk device.
+    /// the file stream to the disk device.
     ///
     public func synchronize() {
         fflush(outputStream)
