@@ -59,6 +59,7 @@ extension FileOutputStreamer {
     ///
     /// - Parameter content: Data to be written to a file.
     ///
+    @discardableResult
     public func write(content: Data) -> UInt64 {
         var wouldWrite = content.count
         var count = 0
