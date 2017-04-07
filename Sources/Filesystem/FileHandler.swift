@@ -27,6 +27,13 @@ public class FileHandler {
 
     /// Files open for processing.
     fileprivate var openFiles: [Int32: Int] = [:]
+    
+    /// Returns the default singleton instance.
+    private static let _default = FileHandler()
+
+    public class var `default`: FileHandler {
+        return _default
+    }
 
     public init() {}
 

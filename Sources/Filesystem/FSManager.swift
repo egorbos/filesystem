@@ -24,6 +24,13 @@ import Error
 public class FSManager {
 
     // MARK: Properties, initialization, deinitialization
+    
+    /// Returns the default singleton instance.
+    private static let _default = FSManager()
+
+    public class var `default`: FSManager {
+        return _default
+    }
 
     public init() {}
 
