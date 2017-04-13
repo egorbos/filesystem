@@ -49,11 +49,11 @@ class FileHandlerTests: XCTestCase {
         fsManager.createFile(atPath: path, content: content)
     }
 
-    func createTestDirectory(atPath path: String) throws {
-        try fsManager.createDirectory(atPath: path)
+    func generateFileName() -> String {
+        return "\(fsManager.workPath)/\(UUID().uuidString)"
     }
-
-    func deleteTestDirectory(atPath path: String) {
+    
+    func deleteTestFile(atPath path: String) {
         do {
             try fsManager.deleteObject(atPath: path)
         } catch let error as SomeError  {
@@ -66,9 +66,7 @@ class FileHandlerTests: XCTestCase {
     // MARK: - Tests
 
     func testOpenFileForReading() throws {
-        let testdirPath = "\(fsManager.workPath)/testdirectory\(UUID().uuidString)"
-        let testfilePath = "\(testdirPath)/testfile"
-        try createTestDirectory(atPath: testdirPath)
+        let testfilePath = generateFileName()
         createTestFile(atPath: testfilePath)
         XCTAssertTrue(fsManager.existsObject(atPath: testfilePath))
 
@@ -76,13 +74,11 @@ class FileHandlerTests: XCTestCase {
         XCTAssertNotNil(descriptor)
         try fileHandler.closeFile(descriptor: descriptor)
 
-        deleteTestDirectory(atPath: testdirPath)
+        deleteTestFile(atPath: testfilePath)
     }
 
     func testOpenFileForUpdating() throws {
-        let testdirPath = "\(fsManager.workPath)/testdirectory\(UUID().uuidString)"
-        let testfilePath = "\(testdirPath)/testfile"
-        try createTestDirectory(atPath: testdirPath)
+        let testfilePath = generateFileName()
         createTestFile(atPath: testfilePath)
         XCTAssertTrue(fsManager.existsObject(atPath: testfilePath))
 
@@ -90,13 +86,11 @@ class FileHandlerTests: XCTestCase {
         XCTAssertNotNil(descriptor)
         try fileHandler.closeFile(descriptor: descriptor)
 
-        deleteTestDirectory(atPath: testdirPath)
+        deleteTestFile(atPath: testfilePath)
     }
 
     func testOpenFileForWriting() throws {
-        let testdirPath = "\(fsManager.workPath)/testdirectory\(UUID().uuidString)"
-        let testfilePath = "\(testdirPath)/testfile"
-        try createTestDirectory(atPath: testdirPath)
+        let testfilePath = generateFileName()
         createTestFile(atPath: testfilePath)
         XCTAssertTrue(fsManager.existsObject(atPath: testfilePath))
 
@@ -104,13 +98,11 @@ class FileHandlerTests: XCTestCase {
         XCTAssertNotNil(descriptor)
         try fileHandler.closeFile(descriptor: descriptor)
 
-        deleteTestDirectory(atPath: testdirPath)
+        deleteTestFile(atPath: testfilePath)
     }
 
     func testIsFileOpen() throws {
-        let testdirPath = "\(fsManager.workPath)/testdirectory\(UUID().uuidString)"
-        let testfilePath = "\(testdirPath)/testfile"
-        try createTestDirectory(atPath: testdirPath)
+        let testfilePath = generateFileName()
         createTestFile(atPath: testfilePath)
         XCTAssertTrue(fsManager.existsObject(atPath: testfilePath))
 
@@ -119,13 +111,11 @@ class FileHandlerTests: XCTestCase {
         try fileHandler.closeFile(descriptor: descriptor)
         XCTAssertFalse(fileHandler.isFileOpen(descriptor: descriptor))
 
-        deleteTestDirectory(atPath: testdirPath)
+        deleteTestFile(atPath: testfilePath)
     }
 
     func testReadWholeFileAtPath() throws {
-        let testdirPath = "\(fsManager.workPath)/testdirectory\(UUID().uuidString)"
-        let testfilePath = "\(testdirPath)/testfile"
-        try createTestDirectory(atPath: testdirPath)
+        let testfilePath = generateFileName()
         createTestFile(atPath: testfilePath)
         XCTAssertTrue(fsManager.existsObject(atPath: testfilePath))
         
@@ -133,13 +123,11 @@ class FileHandlerTests: XCTestCase {
         let content = String(data: data, encoding: .utf8)!
 
         XCTAssertEqual(content, "abcdefghijklmnopqrstuvwxyz")
-        self.deleteTestDirectory(atPath: testdirPath)
+        deleteTestFile(atPath: testfilePath)
     }
 
     func testReadWholeFileAtFileDescriptor() throws {
-        let testdirPath = "\(fsManager.workPath)/testdirectory\(UUID().uuidString)"
-        let testfilePath = "\(testdirPath)/testfile"
-        try createTestDirectory(atPath: testdirPath)
+        let testfilePath = generateFileName()
         createTestFile(atPath: testfilePath)
         XCTAssertTrue(fsManager.existsObject(atPath: testfilePath))
 
@@ -148,13 +136,11 @@ class FileHandlerTests: XCTestCase {
         let content = String(data: data, encoding: .utf8)!
 
         XCTAssertEqual(content, "abcdefghijklmnopqrstuvwxyz")
-        self.deleteTestDirectory(atPath: testdirPath)
+        deleteTestFile(atPath: testfilePath)
     }
 
     func testReadBytesOfFileAtPath() throws {
-        let testdirPath = "\(fsManager.workPath)/testdirectory\(UUID().uuidString)"
-        let testfilePath = "\(testdirPath)/testfile"
-        try createTestDirectory(atPath: testdirPath)
+        let testfilePath = generateFileName()
         createTestFile(atPath: testfilePath)
         XCTAssertTrue(fsManager.existsObject(atPath: testfilePath))
 
@@ -162,13 +148,11 @@ class FileHandlerTests: XCTestCase {
         let content = String(data: data, encoding: .utf8)!
 
         XCTAssertEqual(content, "def")
-        self.deleteTestDirectory(atPath: testdirPath)
+        deleteTestFile(atPath: testfilePath)
     }
 
     func testReadBytesOfFileAtFileDescriptor() throws {
-        let testdirPath = "\(fsManager.workPath)/testdirectory\(UUID().uuidString)"
-        let testfilePath = "\(testdirPath)/testfile"
-        try createTestDirectory(atPath: testdirPath)
+        let testfilePath = generateFileName()
         createTestFile(atPath: testfilePath)
         XCTAssertTrue(fsManager.existsObject(atPath: testfilePath))
 
@@ -177,13 +161,11 @@ class FileHandlerTests: XCTestCase {
         let content = String(data: data, encoding: .utf8)!
 
         XCTAssertEqual(content, "ghi")
-        self.deleteTestDirectory(atPath: testdirPath)
+        deleteTestFile(atPath: testfilePath)
     }
 
     func testWriteContentInFileAtPath() throws {
-        let testdirPath = "\(fsManager.workPath)/testdirectory\(UUID().uuidString)"
-        let testfilePath = "\(testdirPath)/testfile"
-        try createTestDirectory(atPath: testdirPath)
+        let testfilePath = generateFileName()
         createTestFile(atPath: testfilePath)
         XCTAssertTrue(fsManager.existsObject(atPath: testfilePath))
 
@@ -194,13 +176,11 @@ class FileHandlerTests: XCTestCase {
 
         XCTAssertEqual(content, "abcdefghijklmmlkjihgfedcba")
         XCTAssertEqual(recordData.count, Int(count))
-        self.deleteTestDirectory(atPath: testdirPath)
+        deleteTestFile(atPath: testfilePath)
     }
 
     func testWriteContentInFileAtFileDescriptor() throws {
-        let testdirPath = "\(fsManager.workPath)/testdirectory\(UUID().uuidString)"
-        let testfilePath = "\(testdirPath)/testfile"
-        try createTestDirectory(atPath: testdirPath)
+        let testfilePath = generateFileName()
         createTestFile(atPath: testfilePath)
         XCTAssertTrue(fsManager.existsObject(atPath: testfilePath))
 
@@ -216,13 +196,11 @@ class FileHandlerTests: XCTestCase {
 
         XCTAssertEqual(content, "zyxwvutsrqponnopqrstuvwxyz")
         XCTAssertEqual(recordData.count, Int(count))
-        self.deleteTestDirectory(atPath: testdirPath)
+        deleteTestFile(atPath: testfilePath)
     }
 
     func testWriteContentInFileToEOFAtPath() throws {
-        let testdirPath = "\(fsManager.workPath)/testdirectory\(UUID().uuidString)"
-        let testfilePath = "\(testdirPath)/testfile"
-        try createTestDirectory(atPath: testdirPath)
+        let testfilePath = generateFileName()
         createTestFile(atPath: testfilePath)
         XCTAssertTrue(fsManager.existsObject(atPath: testfilePath))
 
@@ -234,13 +212,11 @@ class FileHandlerTests: XCTestCase {
 
         XCTAssertEqual(content, "abcdefghijklmnopqrstuvwxyz1234567890")
         XCTAssertEqual(recordData.count, Int(count))
-        self.deleteTestDirectory(atPath: testdirPath)
+        deleteTestFile(atPath: testfilePath)
     }
 
     func testWriteContentInFileToEOFAtFileDescriptor() throws {
-        let testdirPath = "\(fsManager.workPath)/testdirectory\(UUID().uuidString)"
-        let testfilePath = "\(testdirPath)/testfile"
-        try createTestDirectory(atPath: testdirPath)
+        let testfilePath = generateFileName()
         createTestFile(atPath: testfilePath)
         XCTAssertTrue(fsManager.existsObject(atPath: testfilePath))
 
@@ -256,13 +232,11 @@ class FileHandlerTests: XCTestCase {
 
         XCTAssertEqual(content, "abcdefghijklmnopqrstuvwxyz0987654321")
         XCTAssertEqual(recordData.count, Int(count))
-        self.deleteTestDirectory(atPath: testdirPath)
+        deleteTestFile(atPath: testfilePath)
     }
 
     func testTruncateFileAtPath() throws {
-        let testdirPath = "\(fsManager.workPath)/testdirectory\(UUID().uuidString)"
-        let testfilePath = "\(testdirPath)/testfile"
-        try createTestDirectory(atPath: testdirPath)
+        let testfilePath = generateFileName()
         createTestFile(atPath: testfilePath)
         XCTAssertTrue(fsManager.existsObject(atPath: testfilePath))
 
@@ -272,13 +246,11 @@ class FileHandlerTests: XCTestCase {
         let content = String(data: data, encoding: .utf8)!
 
         XCTAssertEqual(content, "")
-        self.deleteTestDirectory(atPath: testdirPath)
+        deleteTestFile(atPath: testfilePath)
     }
 
     func testTruncateFileAtFileDescriptor() throws {
-        let testdirPath = "\(fsManager.workPath)/testdirectory\(UUID().uuidString)"
-        let testfilePath = "\(testdirPath)/testfile"
-        try createTestDirectory(atPath: testdirPath)
+        let testfilePath = generateFileName()
         createTestFile(atPath: testfilePath)
         XCTAssertTrue(fsManager.existsObject(atPath: testfilePath))
 
@@ -292,7 +264,7 @@ class FileHandlerTests: XCTestCase {
         try fileHandler.closeFile(descriptor: readDescriptor)
 
         XCTAssertEqual(content, "abcdefghij")
-        self.deleteTestDirectory(atPath: testdirPath)
+        deleteTestFile(atPath: testfilePath)
     }
 
 }

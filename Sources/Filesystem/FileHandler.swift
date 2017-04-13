@@ -37,12 +37,12 @@ public class FileHandler {
 
     public init() {}
 
-    /// Close all open files and delete all write queues
+    /// Close all open files
     deinit {
-        for file in openFiles {
-            close(file.key)
+        let _ = openFiles.map {
+            close($0.key)
+            openFiles.removeValue(forKey: $0.key)
         }
-        openFiles.removeAll()
     }
 
 }
@@ -114,6 +114,7 @@ extension FileHandler {
         guard let _ = openFiles.removeValue(forKey: fd) else {
             throw SomeError(reason: FSError.fileIsNotOpen(fileDescriptor: fd))
         }
+        close(fd)
     }
 
     /// Returns true if file is open, otherwise returns false.
@@ -170,7 +171,7 @@ extension FileHandler {
             buffer.deallocate(capacity: bufferSize)
         }
         
-        self.seek(toOffset: 0, descriptor: fd)
+        seek(toOffset: 0, descriptor: fd)
         
         repeat {
             count = read(fd, buffer, bufferSize)
@@ -228,7 +229,7 @@ extension FileHandler {
             buffer.deallocate(capacity: bufferSize)
         }
         
-        self.seek(toOffset: start, descriptor: fd)
+        seek(toOffset: start, descriptor: fd)
         
         repeat {
             if bufferSize > wouldRead {
@@ -248,7 +249,6 @@ extension FileHandler {
 
     /// Writes the specified data to the file, beginning at the specified file pointer.
     /// If the write operation is successful, return the actual number of bytes write in the file.
-    ///
     ///
     /// - Parameters:
     ///   - path:    Location of the file which needs to be write.
@@ -289,8 +289,8 @@ extension FileHandler {
             throw SomeError(reason: FSError.fileIsNotOpen(fileDescriptor: fd))
         }
         
-        self.seek(toOffset: offset, descriptor: fd)
-        let count = self.writeData(content, to: fd)
+        seek(toOffset: offset, descriptor: fd)
+        let count = writeData(content, to: fd)
         
         if shouldClose {
             try? self.closeFile(descriptor: fd)
@@ -336,8 +336,8 @@ extension FileHandler {
             throw SomeError(reason: FSError.fileIsNotOpen(fileDescriptor: fd))
         }
         
-        self.seekToEndOfFile(descriptor: fd)
-        let count = self.writeData(content, to: fd)
+        seekToEndOfFile(descriptor: fd)
+        let count = writeData(content, to: fd)
         
         if shouldClose {
             try? self.closeFile(descriptor: fd)

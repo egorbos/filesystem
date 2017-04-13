@@ -43,7 +43,7 @@ extension FSManager {
     // MARK: Process methods
 
     public var workPath: String {
-        let maxBytes: Int = Int(PATH_MAX) + 1
+        let maxBytes = Int(PATH_MAX) + 1
         let buffer = UnsafeMutablePointer<Int8>.allocate(capacity: maxBytes)
         defer {
             buffer.deinitialize(count: maxBytes)
@@ -237,6 +237,10 @@ extension FSManager {
         guard let dir = opendir(path) else {
             throw SomeError(reason: FSError.getDirectoryContentsFailed(path: path))
         }
+        
+        defer {
+            closedir(dir)
+        }
 
         var children: [String] = []
         var ep = readdir(dir)
@@ -257,14 +261,13 @@ extension FSManager {
             }
             nameBuf.append(0)
 
-            let child: String = String(cString: nameBuf)
+            let child = String(cString: nameBuf)
             ep = readdir(dir)
             if child != "." && child != ".." {
                 children.append(child)
             }
         }
 
-        closedir(dir)
         return children
     }
 
@@ -487,20 +490,22 @@ extension FSManager {
         let modes = S_IROTH | S_IRGRP | S_IRUSR | S_IWOTH | S_IWGRP | S_IWUSR
         let fd = open(path, O_WRONLY | O_CREAT, modes)
 
+        defer {
+            close(fd)
+        }
+        
         guard fd > -1 else {
             return false
         }
-
+        
         guard let data = content else {
-            close(fd)
             return true
         }
 
-        let bufferSize: Int = data.count
+        let bufferSize = data.count
         let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: bufferSize)
         data.copyBytes(to: buffer, count: bufferSize)
         write(fd, buffer, bufferSize)
-        close(fd)
         return true
     }
 
@@ -545,7 +550,7 @@ extension FSManager {
             return
         }
 
-        let children: [String] = try contentsOfDirectory(atPath: path)
+        let children = try contentsOfDirectory(atPath: path)
         for child in children {
             try removeItem(atPath: "\(path)/\(child)")
         }
@@ -566,16 +571,18 @@ extension FSManager {
             }
             
             var st = stat()
-
-            var fdIn: Int32 = 0
-            var fdOut: Int32 = 0
             var x = 0
             var i = 0
 
             stat(srcPath, &st)
 
-            fdIn = open(srcPath, O_RDONLY)
-            fdOut = open(dstPath, O_WRONLY | O_CREAT, st.st_mode)
+            let fdIn = open(srcPath, O_RDONLY)
+            let fdOut = open(dstPath, O_WRONLY | O_CREAT, st.st_mode)
+            
+            defer {
+                close(fdOut)
+                close(fdIn)
+            }
 
             while i < Int(st.st_size) {
                 x = read(fdIn, buffer, bufferSize)
@@ -583,8 +590,6 @@ extension FSManager {
                 i += x
             }
 
-            close(fdOut)
-            close(fdIn)
             return
         }
 

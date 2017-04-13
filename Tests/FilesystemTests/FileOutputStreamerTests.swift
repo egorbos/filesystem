@@ -20,8 +20,8 @@ import Error
 
 class FileOutputStreamerTests: XCTestCase {
 
-    let fsManager = FSManager()
-    let fileHandler = FileHandler()
+    let fsManager = FSManager.default
+    let fileHandler = FileHandler.default
 
     static var allTests : [(String, (FileOutputStreamerTests) -> () throws -> Void)] {
         return [
@@ -36,11 +36,7 @@ class FileOutputStreamerTests: XCTestCase {
         fsManager.createFile(atPath: path, content: content)
     }
 
-    func createTestDirectory(atPath path: String) throws {
-        try fsManager.createDirectory(atPath: path)
-    }
-
-    func deleteTestDirectory(atPath path: String) {
+    func deleteTestFile(atPath path: String) {
         do {
             try fsManager.deleteObject(atPath: path)
         } catch let error as SomeError  {
@@ -53,10 +49,7 @@ class FileOutputStreamerTests: XCTestCase {
     // MARK: - Tests
 
     func testWriteData() throws {
-        let testdirPath = "\(fsManager.workPath)/testdirectory\(UUID().uuidString)"
-        let testfilePath = "\(testdirPath)/testfile"
-        try createTestDirectory(atPath: testdirPath)
-        XCTAssertTrue(fsManager.existsObject(atPath: testdirPath))
+        let testfilePath = "\(fsManager.workPath)/\(UUID().uuidString)"
 
         let fileOutStreamer: FileOutputStreamer = try FileOutputStreamer(file: testfilePath)
         let writeData = "abcdefghijklmnopqrstuvwxyz".data(using: .utf8)!
@@ -68,7 +61,7 @@ class FileOutputStreamerTests: XCTestCase {
 
         XCTAssertEqual(content, "abcdefghijklmnopqrstuvwxyz")
         XCTAssertEqual(Int(count), writeData.count)
-        self.deleteTestDirectory(atPath: testdirPath)
+        deleteTestFile(atPath: testfilePath)
     }
 
 }
