@@ -14,13 +14,12 @@
 
 import XCTest
 import Foundation
-import Error
 
 @testable import Filesystem
 
 class FileOutputStreamerTests: XCTestCase {
 
-    let fsManager = FSManager.default
+    let fsManager = FileSystem.default
     let fileHandler = FileHandler.default
 
     static var allTests : [(String, (FileOutputStreamerTests) -> () throws -> Void)] {
@@ -39,7 +38,7 @@ class FileOutputStreamerTests: XCTestCase {
     func deleteTestFile(atPath path: String) {
         do {
             try fsManager.deleteObject(atPath: path)
-        } catch let error as SomeError  {
+        } catch let error as FileSystemError  {
             XCTFail(error.description)
         } catch {
             XCTFail("Unhandled error")

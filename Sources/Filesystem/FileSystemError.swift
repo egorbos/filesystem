@@ -13,10 +13,8 @@
 /// limitations under the License.
 
 import Foundation
-import Error
 
-/// The reasons due to which the error can be thrown by FileSystem modules.
-public enum FSError: ErrorReasonProtocol {
+public enum FileSystemError: Swift.Error {
     case objectDoesNotExist(path: String)
     case objectAlreadyExists(path: String)
     case createSymlinkFailed(from: String, to: String)
@@ -32,11 +30,16 @@ public enum FSError: ErrorReasonProtocol {
     case fileIsNotOpen(fileDescriptor: Int32)
 }
 
-// MARK: - ErrorReason Descriptions
-extension FSError {
 
+// MARK: - Error Descriptions
+extension FileSystemError: CustomStringConvertible {
+    
+    public var description: String {
+        return String(describing: type(of: self)) + "(" + localizedDescription + ")"
+    }
+    
     /// Returns a human-readable textual representation of the receiver.
-    public var message: String {
+    public var localizedDescription: String {
         switch self {
         case let .objectDoesNotExist(path):
             return "Object does not exist at \(path)"

@@ -14,13 +14,12 @@
 
 import XCTest
 import Foundation
-import Error
 
 @testable import Filesystem
 
 class FileHandlerTests: XCTestCase {
 
-    let fsManager = FSManager()
+    let fsManager = FileSystem()
     let fileHandler = FileHandler()
 
     static var allTests : [(String, (FileHandlerTests) -> () throws -> Void)] {
@@ -56,7 +55,7 @@ class FileHandlerTests: XCTestCase {
     func deleteTestFile(atPath path: String) {
         do {
             try fsManager.deleteObject(atPath: path)
-        } catch let error as SomeError  {
+        } catch let error as FileSystemError  {
             XCTFail(error.description)
         } catch {
             XCTFail("Unhandled error")

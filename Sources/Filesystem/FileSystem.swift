@@ -13,22 +13,21 @@
 /// limitations under the License.
 
 #if os(OSX) || os(iOS)
-    import Darwin
+    import Darwin.C
 #elseif os(Linux) || CYGWIN
     import Glibc
 #endif
 
 import Foundation
-import Error
 
-public class FSManager {
+public class FileSystem {
 
     // MARK: Properties, initialization, deinitialization
     
     /// Returns the default singleton instance.
-    private static let _default = FSManager()
+    private static let _default = FileSystem()
 
-    public class var `default`: FSManager {
+    public class var `default`: FileSystem {
         return _default
     }
 
@@ -38,7 +37,7 @@ public class FSManager {
 
 }
 
-extension FSManager {
+extension FileSystem {
 
     // MARK: Process methods
 
@@ -55,7 +54,7 @@ extension FSManager {
     }
 }
 
-extension FSManager {
+extension FileSystem {
 
     // MARK: Attribute methods
 
@@ -74,27 +73,27 @@ extension FSManager {
     ///
     /// - Parameter path: The path to the object that you want to get attributes.
     ///
-    /// - Throws: `FSError.getAttributesFailed`
+    /// - Throws: `FileSystemError.getAttributesFailed`
     ///
     /// - Note: This method does not follow links.
     ///
     public func attributesOfObject(atPath path: String) throws -> [String: AnyHashable] {
         var st = stat()
         guard lstat(path, &st) == 0 else {
-            throw SomeError(reason: FSError.getAttributesFailed(path: path))
+            throw FileSystemError.getAttributesFailed(path: path)
         }
 
         var attr: [String: AnyHashable] = [:]
 
         var type: String
         switch st.st_mode & S_IFMT {
-        case S_IFCHR: type = FSObjectType.characterSpecial.rawValue
-        case S_IFDIR: type = FSObjectType.directory.rawValue
-        case S_IFBLK: type = FSObjectType.blockSpecial.rawValue
-        case S_IFREG: type = FSObjectType.regular.rawValue
-        case S_IFLNK: type = FSObjectType.symbolicLink.rawValue
-        case S_IFSOCK: type = FSObjectType.socket.rawValue
-        default: type = FSObjectType.unknown.rawValue
+        case S_IFCHR: type = FileSystemObjectType.characterSpecial.rawValue
+        case S_IFDIR: type = FileSystemObjectType.directory.rawValue
+        case S_IFBLK: type = FileSystemObjectType.blockSpecial.rawValue
+        case S_IFREG: type = FileSystemObjectType.regular.rawValue
+        case S_IFLNK: type = FileSystemObjectType.symbolicLink.rawValue
+        case S_IFSOCK: type = FileSystemObjectType.socket.rawValue
+        default: type = FileSystemObjectType.unknown.rawValue
         }
 
         attr["type"] = type
@@ -118,12 +117,12 @@ extension FSManager {
     ///
     /// - Note: This method does not follow links.
     ///
-    public func typeOfObject(atPath path: String) -> FSObjectType? {
+    public func typeOfObject(atPath path: String) -> FileSystemObjectType? {
         let attributes = try? attributesOfObject(atPath: path)
         guard let value = attributes?["type"] as? String else {
             return nil
         }
-        return FSObjectType(rawValue: value)
+        return FileSystemObjectType(rawValue: value)
     }
 
     /// If object exists returns the size of the object in bytes, 
@@ -188,7 +187,7 @@ extension FSManager {
 
 }
 
-extension FSManager {
+extension FileSystem {
 
     // MARK: Permission methods
 
@@ -218,7 +217,7 @@ extension FSManager {
 
 }
 
-extension FSManager {
+extension FileSystem {
 
     // MARK: Filesystem methods
 
@@ -229,13 +228,13 @@ extension FSManager {
     ///   - recursive: Whether to obtain the paths recursively.
     ///                Default value is `false`.
     ///
-    /// - Throws: `FSError.getDirectoryContentsFailed`
+    /// - Throws: `FileSystemError.getDirectoryContentsFailed`
     ///
     /// - Note: this method follow links if recursive is `false`, otherwise not follow links.
     ///
     public func contentsOfDirectory(atPath path: String, recursive: Bool = false) throws -> [String] {
         guard let dir = opendir(path) else {
-            throw SomeError(reason: FSError.getDirectoryContentsFailed(path: path))
+            throw FileSystemError.getDirectoryContentsFailed(path: path)
         }
         
         defer {
@@ -278,12 +277,12 @@ extension FSManager {
     ///   - object: The path to the object for which to create a symbolic link.
     ///
     /// - Throws: 
-    ///   - `FSError.objectDoesNotExist`
-    ///   - `FSError.createSymlinkFailed`
+    ///   - `FileSystemError.objectDoesNotExist`
+    ///   - `FileSystemError.createSymlinkFailed`
     ///
     public func createSymbolicLink(atPath path: String, ofObject object: String) throws {
         guard existsObject(atPath: object) else {
-            throw SomeError(reason: FSError.objectDoesNotExist(path: object))
+            throw FileSystemError.objectDoesNotExist(path: object)
         }
 
         if directoryReadyForWrite(path) {
@@ -292,19 +291,19 @@ extension FSManager {
                 try symboliclink(atPath: linkPath, withDestinationPath: object)
                 return
             } catch {
-                throw SomeError(reason: FSError.createSymlinkFailed(from: object, to: path))
+                throw FileSystemError.createSymlinkFailed(from: object, to: path)
             }
         }
 
         guard existsObject(atPath: path) == false,
               directoryReadyForWrite(path.deletingLastPathComponent) else {
-            throw SomeError(reason: FSError.createSymlinkFailed(from: object, to: path))
+            throw FileSystemError.createSymlinkFailed(from: object, to: path)
         }
 
         do {
             try symboliclink(atPath: path, withDestinationPath: object)
         } catch {
-            throw SomeError(reason: FSError.createSymlinkFailed(from: object, to: path))
+            throw FileSystemError.createSymlinkFailed(from: object, to: path)
         }
     }
 
@@ -315,12 +314,12 @@ extension FSManager {
     ///   - object: The path to the object for which to create a hard link.
     ///
     /// - Throws: 
-    ///   - `FSError.objectDoesNotExist`
-    ///   - `FSError.createHardlinkFailed`
+    ///   - `FileSystemError.objectDoesNotExist`
+    ///   - `FileSystemError.createHardlinkFailed`
     ///
     public func createHardLink(ofObject object: String, toPath path: String) throws {
         guard existsObject(atPath: object) else {
-            throw SomeError(reason: FSError.objectDoesNotExist(path: object))
+            throw FileSystemError.objectDoesNotExist(path: object)
         }
 
         if directoryReadyForWrite(path) {
@@ -329,19 +328,19 @@ extension FSManager {
                 try hardlink(atPath: object, toPath: linkPath)
                 return
             } catch {
-                throw SomeError(reason: FSError.createHardlinkFailed(from: object, to: path))
+                throw FileSystemError.createHardlinkFailed(from: object, to: path)
             }
         }
 
         guard existsObject(atPath: path) == false,
               directoryReadyForWrite(path.deletingLastPathComponent) else {
-            throw SomeError(reason: FSError.createHardlinkFailed(from: object, to: path))
+            throw FileSystemError.createHardlinkFailed(from: object, to: path)
         }
 
         do {
             try hardlink(atPath: object, toPath: path)
         } catch {
-            throw SomeError(reason: FSError.createHardlinkFailed(from: object, to: path))
+            throw FileSystemError.createHardlinkFailed(from: object, to: path)
         }
     }
 
@@ -352,20 +351,20 @@ extension FSManager {
     /// - Parameter path: The path to the object you want to delete.
     ///
     /// - Throws: 
-    ///   - `FSError.objectDoesNotExist`
-    ///   - `FSError.deleteObjectFailed`
+    ///   - `FileSystemError.objectDoesNotExist`
+    ///   - `FileSystemError.deleteObjectFailed`
     ///
     /// - Note: This method does not follow links.
     ///
     public func deleteObject(atPath path: String) throws {
         guard existsObject(atPath: path) else {
-            throw SomeError(reason: FSError.objectDoesNotExist(path: path))
+            throw FileSystemError.objectDoesNotExist(path: path)
         }
 
         do {
             try removeItem(atPath: path)
         } catch {
-            throw SomeError(reason: FSError.deleteObjectFailed(path: path))
+            throw FileSystemError.deleteObjectFailed(path: path)
         }
     }
 
@@ -378,14 +377,14 @@ extension FSManager {
     ///   - dstPath: Path destination of the object.
     ///
     /// - Throws: 
-    ///   - `FSError.objectDoesNotExist`
-    ///   - `FSError.moveObjectFailed`
+    ///   - `FileSystemError.objectDoesNotExist`
+    ///   - `FileSystemError.moveObjectFailed`
     ///
     /// - Note: This method does not follow links.
     ///
     public func moveObject(atPath srcPath: String, toPath dstPath: String) throws {
         guard existsObject(atPath: srcPath) else {
-            throw SomeError(reason: FSError.objectDoesNotExist(path: srcPath))
+            throw FileSystemError.objectDoesNotExist(path: srcPath)
         }
 
         if directoryReadyForWrite(dstPath) {
@@ -394,19 +393,19 @@ extension FSManager {
                 try moveItem(atPath: srcPath, toPath: destinationPath)
                 return
             } catch {
-                throw SomeError(reason: FSError.moveObjectFailed(from: srcPath, to: dstPath))
+                throw FileSystemError.moveObjectFailed(from: srcPath, to: dstPath)
             }
         }
 
         guard existsObject(atPath: dstPath) == false,
               directoryReadyForWrite(dstPath.deletingLastPathComponent) else {
-            throw SomeError(reason: FSError.moveObjectFailed(from: srcPath, to: dstPath))
+            throw FileSystemError.moveObjectFailed(from: srcPath, to: dstPath)
         }
 
         do {
             try moveItem(atPath: srcPath, toPath: dstPath)
         } catch {
-            throw SomeError(reason: FSError.moveObjectFailed(from: srcPath, to: dstPath))
+            throw FileSystemError.moveObjectFailed(from: srcPath, to: dstPath)
         }
     }
 
@@ -420,14 +419,14 @@ extension FSManager {
     ///   - dstPath: Path destination of the object.
     ///
     /// - Throws: 
-    ///   - `FSError.objectDoesNotExist`
-    ///   - `FSError.copyObjectFailed`
+    ///   - `FileSystemError.objectDoesNotExist`
+    ///   - `FileSystemError.copyObjectFailed`
     ///
     /// - Note: This method does not follow links.
     ///
     public func copyObject(atPath srcPath: String, toPath dstPath: String) throws {
         guard existsObject(atPath: srcPath) else {
-            throw SomeError(reason: FSError.objectDoesNotExist(path: srcPath))
+            throw FileSystemError.objectDoesNotExist(path: srcPath)
         }
 
         if directoryReadyForWrite(dstPath) {
@@ -436,19 +435,19 @@ extension FSManager {
                 try copyItem(atPath: srcPath, toPath: destinationPath)
                 return
             } catch {
-                throw SomeError(reason: FSError.copyObjectFailed(from: srcPath, to: dstPath))
+                throw FileSystemError.copyObjectFailed(from: srcPath, to: dstPath)
             }
         }
 
         guard existsObject(atPath: dstPath) == false,
               directoryReadyForWrite(dstPath.deletingLastPathComponent) else {
-            throw SomeError(reason: FSError.copyObjectFailed(from: srcPath, to: dstPath))
+            throw FileSystemError.copyObjectFailed(from: srcPath, to: dstPath)
         }
 
         do {
             try copyItem(atPath: srcPath, toPath: dstPath)
         } catch {
-            throw SomeError(reason: FSError.copyObjectFailed(from: srcPath, to: dstPath))
+            throw FileSystemError.copyObjectFailed(from: srcPath, to: dstPath)
         }
     }
 
@@ -460,17 +459,17 @@ extension FSManager {
     /// - Parameter path: The path on which the directory will be created.
     ///
     /// - Throws: 
-    ///   - `FSError.objectAlreadyExists`
-    ///   - `FSError.createObjectFailed`
+    ///   - `FileSystemError.objectAlreadyExists`
+    ///   - `FileSystemError.createObjectFailed`
     ///
     public func createDirectory(atPath path: String) throws {
         guard !existsObject(atPath: path) else {
-            throw SomeError(reason: FSError.objectAlreadyExists(path: path))
+            throw FileSystemError.objectAlreadyExists(path: path)
         }
 
         if directoryReadyForWrite(path.deletingLastPathComponent) {
             if mkdir(path, S_IRWXO | S_IRWXG | S_IRWXU) != 0 {
-                throw SomeError(reason: FSError.createObjectFailed(path: path))
+                throw FileSystemError.createObjectFailed(path: path)
             }
         }
     }
@@ -504,14 +503,17 @@ extension FSManager {
 
         let bufferSize = data.count
         let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: bufferSize)
+        defer {
+            buffer.deinitialize(count: bufferSize)
+            buffer.deallocate(capacity: bufferSize)
+        }
         data.copyBytes(to: buffer, count: bufferSize)
-        write(fd, buffer, bufferSize)
-        return true
+        return write(fd, buffer, bufferSize) == data.count
     }
 
 }
 
-extension FSManager {
+extension FileSystem {
 
     // MARK: Private methods
 

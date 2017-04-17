@@ -16,7 +16,7 @@ import XCTest
 @testable import FilesystemTests
 
 XCTMain([
-     testCase(FSManagerTests.allTests),
+     testCase(FileSystemTests.allTests),
      testCase(FileHandlerTests.allTests),
      testCase(FileOutputStreamerTests.allTests)
 ])

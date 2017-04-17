@@ -13,13 +13,12 @@
 /// limitations under the License.
 
 #if os(macOS) || os(iOS)
-    import Darwin
+    import Darwin.C
 #elseif os(Linux) || CYGWIN
     import Glibc
 #endif
 
 import Foundation
-import Error
 
 public class FileHandler {
 
@@ -56,12 +55,12 @@ extension FileHandler {
     ///
     /// - Parameter path: Location of the file which needs to be read.
     ///
-    /// - Throws: `FSError.openFileAtPathFailed`
+    /// - Throws: `FileSystemError.openFileAtPathFailed`
     ///
     public func openFileForReading(atPath path: String) throws -> Int32 {
         let fd = open(path, O_RDONLY)
         guard fd > -1 else {
-            throw SomeError(reason: FSError.openFileAtPathFailed(path: path))
+            throw FileSystemError.openFileAtPathFailed(path: path)
         }
         let pathHash = path.hashValue
         openFiles[fd] = pathHash
@@ -73,12 +72,12 @@ extension FileHandler {
     ///
     /// - Parameter path: Location of the file which needs to be update.
     ///
-    /// - Throws: `FSError.openFileAtPathFailed`
+    /// - Throws: `FileSystemError.openFileAtPathFailed`
     ///
     public func openFileForUpdating(atPath path: String) throws -> Int32 {
         let fd = open(path, O_RDWR | O_CREAT)
         guard fd > -1 else {
-            throw SomeError(reason: FSError.openFileAtPathFailed(path: path))
+            throw FileSystemError.openFileAtPathFailed(path: path)
         }
         let pathHash = path.hashValue
         openFiles[fd] = pathHash
@@ -90,12 +89,12 @@ extension FileHandler {
     ///
     /// - Parameter path: Location of the file which needs to be write.
     ///
-    /// - Throws: `FSError.openFileAtPathFailed`
+    /// - Throws: `FileSystemError.openFileAtPathFailed`
     ///
     public func openFileForWriting(atPath path: String) throws -> Int32 {
         let fd = open(path, O_WRONLY | O_CREAT)
         guard fd > -1 else {
-            throw SomeError(reason: FSError.openFileAtPathFailed(path: path))
+            throw FileSystemError.openFileAtPathFailed(path: path)
         }
         let pathHash = path.hashValue
         openFiles[fd] = pathHash
@@ -108,11 +107,11 @@ extension FileHandler {
     ///
     /// - Parameter fd: The POSIX descriptor of the file which needs to be closed.
     ///
-    /// - Throws: `FSError.fileIsNotOpen`
+    /// - Throws: `FileSystemError.fileIsNotOpen`
     ///
     public func closeFile(descriptor fd: Int32) throws {
         guard let _ = openFiles.removeValue(forKey: fd) else {
-            throw SomeError(reason: FSError.fileIsNotOpen(fileDescriptor: fd))
+            throw FileSystemError.fileIsNotOpen(fileDescriptor: fd)
         }
         close(fd)
     }
@@ -137,8 +136,8 @@ extension FileHandler {
     /// - Parameter path: Location of the file which needs to be read.
     ///
     /// - Throws: 
-    ///   - `FSError.openFileAtPathFailed`
-    ///   - `FSError.fileIsNotOpen`
+    ///   - `FileSystemError.openFileAtPathFailed`
+    ///   - `FileSystemError.fileIsNotOpen`
     ///
     public func readWholeFile(atPath path: String) throws -> Data {
         let descriptor = try openFileForReading(atPath: path)
@@ -154,11 +153,11 @@ extension FileHandler {
     ///   - shouldClose: Whether to close the file after completion.
     ///                  Default value is `false`.
     ///
-    /// - Throws: `FSError.fileIsNotOpen`
+    /// - Throws: `FileSystemError.fileIsNotOpen`
     ///
     public func readWholeFile(atFileDescriptor fd: Int32, shouldClose: Bool = false) throws -> Data {
         guard openFiles[fd] != nil else {
-            throw SomeError(reason: FSError.fileIsNotOpen(fileDescriptor: fd))
+            throw FileSystemError.fileIsNotOpen(fileDescriptor: fd)
         }
         var bytes: [UInt8] = []
         var count = 0
@@ -193,8 +192,8 @@ extension FileHandler {
     ///   - end:   Ending file pointer (byte), where it is necessary to finish.
     ///
     /// - Throws: 
-    ///   - `FSError.openFileAtPathFailed`
-    ///   - `FSError.fileIsNotOpen`
+    ///   - `FileSystemError.openFileAtPathFailed`
+    ///   - `FileSystemError.fileIsNotOpen`
     ///
     public func readBytesOfFile(atPath path: String, start: UInt64, end: UInt64) throws -> Data {
         let descriptor = try openFileForReading(atPath: path)
@@ -210,12 +209,12 @@ extension FileHandler {
     ///   - end:         Ending file pointer (byte), where it is necessary to finish.
     ///   - shouldClose: Whether to close the file after completion. Default value is `false`.
     ///
-    /// - Throws: `FSError.fileIsNotOpen`
+    /// - Throws: `FileSystemError.fileIsNotOpen`
     ///
     public func readBytesOfFile(atFileDescriptor fd: Int32, start: UInt64,
-                         end: UInt64, shouldClose: Bool = false) throws -> Data {
+                                end: UInt64, shouldClose: Bool = false) throws -> Data {
         guard openFiles[fd] != nil else {
-            throw SomeError(reason: FSError.fileIsNotOpen(fileDescriptor: fd))
+            throw FileSystemError.fileIsNotOpen(fileDescriptor: fd)
         }
         var wouldRead = Int(end - start)
         var bytes: [UInt8] = []
@@ -256,8 +255,8 @@ extension FileHandler {
     ///   - content: Contents which need to be written down.
     ///
     /// - Throws: 
-    ///   - `FSError.openFileAtPathFailed`
-    ///   - `FSError.fileIsNotOpen`
+    ///   - `FileSystemError.openFileAtPathFailed`
+    ///   - `FileSystemError.fileIsNotOpen`
     ///
     /// - Note: This method rewrites existing data of the file.
     ///
@@ -277,16 +276,16 @@ extension FileHandler {
     ///   - content:     Contents which need to be written down.
     ///   - shouldClose: Whether to close the file after completion. Default value is `false`.
     ///
-    /// - Throws: `FSError.fileIsNotOpen`
+    /// - Throws: `FileSystemError.fileIsNotOpen`
     ///
     /// - Note: This method rewrites existing data of the file.
     ///
     @discardableResult
     public func writeContentInFile(atFileDescriptor fd: Int32,
-                            offset: UInt64, content: Data,
-                            shouldClose: Bool = false) throws -> UInt64 {
+                                   offset: UInt64, content: Data,
+                                   shouldClose: Bool = false) throws -> UInt64 {
         guard let _ = openFiles[fd] else {
-            throw SomeError(reason: FSError.fileIsNotOpen(fileDescriptor: fd))
+            throw FileSystemError.fileIsNotOpen(fileDescriptor: fd)
         }
         
         seek(toOffset: offset, descriptor: fd)
@@ -307,8 +306,8 @@ extension FileHandler {
     ///   - content: Contents which need to be written down.
     ///
     /// - Throws: 
-    ///   - `FSError.openFileAtPathFailed`
-    ///   - `FSError.fileIsNotOpen`
+    ///   - `FileSystemError.openFileAtPathFailed`
+    ///   - `FileSystemError.fileIsNotOpen`
     ///
     @discardableResult
     public func writeContentToEndOfFile(atPath path: String, content: Data) throws -> UInt64 {
@@ -327,13 +326,13 @@ extension FileHandler {
     ///   - shouldClose: Whether to close the file after completion.
     ///                  Default value is `false`.
     ///
-    /// - Throws: `FSError.fileIsNotOpen`
+    /// - Throws: `FileSystemError.fileIsNotOpen`
     ///
     @discardableResult
     public func writeContentToEndOfFile(atFileDescriptor fd: Int32,
                                         content: Data, shouldClose: Bool = false) throws -> UInt64 {
         guard let _ = openFiles[fd] else {
-            throw SomeError(reason: FSError.fileIsNotOpen(fileDescriptor: fd))
+            throw FileSystemError.fileIsNotOpen(fileDescriptor: fd)
         }
         
         seekToEndOfFile(descriptor: fd)
@@ -353,8 +352,8 @@ extension FileHandler {
     ///   - offset:      Ending file pointer (byte), where it is necessary to finish.
     ///
     /// - Throws: 
-    ///   - `FSError.openFileAtPathFailed`
-    ///   - `FSError.fileIsNotOpen`
+    ///   - `FileSystemError.openFileAtPathFailed`
+    ///   - `FileSystemError.fileIsNotOpen`
     ///
     public func truncateFile(atPath path: String, toOffset offset: UInt64) throws {
         let descriptor = try openFileForWriting(atPath: path)
@@ -368,13 +367,13 @@ extension FileHandler {
     ///   - offset:      Ending file pointer (byte), where it is necessary to finish truncating.
     ///   - shouldClose: Whether to close the file after completion. Default value is `false`.
     ///
-    /// - Throws: `FSError.fileIsNotOpen`
+    /// - Throws: `FileSystemError.fileIsNotOpen`
     ///
     public func truncateFile(atFileDescriptor fd: Int32,
                              toOffset offset: UInt64,
                              shouldClose: Bool = false) throws {
         guard let _ = openFiles[fd] else {
-            throw SomeError(reason: FSError.fileIsNotOpen(fileDescriptor: fd))
+            throw FileSystemError.fileIsNotOpen(fileDescriptor: fd)
         }
         
         #if os(macOS) || os(iOS)

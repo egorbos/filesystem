@@ -15,8 +15,5 @@
 import PackageDescription
 
 let package = Package(
-    name: "Filesystem",
-    dependencies: [
-        .Package(url: "https://github.com/swixbase/error.git", Version(0,1,0))
-    ]
+    name: "Filesystem"
 )

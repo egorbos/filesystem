@@ -14,7 +14,7 @@
 
 import Foundation
 
-public enum FSObjectType: String {
+public enum FileSystemObjectType: String {
 
     /// The object is a directory.
     case directory = "typeDirectory"

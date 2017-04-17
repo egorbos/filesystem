@@ -13,13 +13,12 @@
 /// limitations under the License.
 
 #if os(OSX) || os(iOS)
-    import Darwin
+    import Darwin.C
 #elseif os(Linux) || CYGWIN
     import Glibc
 #endif
 
 import Foundation
-import Error
 
 public class FileOutputStreamer {
 
@@ -32,13 +31,13 @@ public class FileOutputStreamer {
     ///
     /// - Parameter file:  Path to the file in which it is necessary to make record.
     ///
-    /// - Throws: `FSError.openFileAtPathFailed`
+    /// - Throws: `FileSystemError.openFileAtPathFailed`
     ///
     /// - Note: File would be created, if it doesn't exist.
     ///
     public init(file: String) throws {
         guard let os = fopen(file, "a+") else {
-            throw SomeError(reason: FSError.openFileAtPathFailed(path: file))
+            throw FileSystemError.openFileAtPathFailed(path: file)
         }
         self.outputStream = os
     }
