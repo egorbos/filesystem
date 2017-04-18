@@ -60,8 +60,8 @@ extension FileOutputStreamer {
     ///
     @discardableResult
     public func write(content: Data) -> UInt64 {
-        var wouldWrite = content.count
-        var count = 0
+        var remaining = content.count
+        var done = 0
         
         var bufferSize = 8 * 1024
         let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: bufferSize)
@@ -72,17 +72,16 @@ extension FileOutputStreamer {
         }
         
         repeat {
-            if bufferSize > wouldWrite {
-                bufferSize = wouldWrite
-            }
-            let range = Range<Data.Index>(count...(count + (bufferSize - 1)))
+            let count = min(bufferSize, remaining)
+            let upper = done + (count - 1)
+            let range = Range<Data.Index>(done...upper)
             content.copyBytes(to: buffer, from: range)
-            fwrite(buffer, bufferSize, 1, outputStream)
-            count += bufferSize
-            wouldWrite -= bufferSize
-        } while wouldWrite > 0
+            fwrite(buffer, count, 1, outputStream)
+            done += count
+            remaining -= count
+        } while remaining > 0
         
-        return UInt64(count)
+        return UInt64(done)
     }
 
     /// Transfers all modified in-core data of (i.e., modified buffer cache pages for)

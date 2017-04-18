@@ -58,13 +58,7 @@ extension FileHandler {
     /// - Throws: `FileSystemError.openFileAtPathFailed`
     ///
     public func openFileForReading(atPath path: String) throws -> Int32 {
-        let fd = open(path, O_RDONLY)
-        guard fd > -1 else {
-            throw FileSystemError.openFileAtPathFailed(path: path)
-        }
-        let pathHash = path.hashValue
-        openFiles[fd] = pathHash
-        return fd
+        return try openFile(path, flags: O_RDONLY)
     }
 
     /// Returns the POSIX file descriptor for reading and writing the file at the path,
@@ -75,13 +69,7 @@ extension FileHandler {
     /// - Throws: `FileSystemError.openFileAtPathFailed`
     ///
     public func openFileForUpdating(atPath path: String) throws -> Int32 {
-        let fd = open(path, O_RDWR | O_CREAT)
-        guard fd > -1 else {
-            throw FileSystemError.openFileAtPathFailed(path: path)
-        }
-        let pathHash = path.hashValue
-        openFiles[fd] = pathHash
-        return fd
+        return try openFile(path, flags: O_RDWR | O_CREAT)
     }
 
     /// Returns the POSIX file descriptor for writing to the file at the path,
@@ -92,13 +80,7 @@ extension FileHandler {
     /// - Throws: `FileSystemError.openFileAtPathFailed`
     ///
     public func openFileForWriting(atPath path: String) throws -> Int32 {
-        let fd = open(path, O_WRONLY | O_CREAT)
-        guard fd > -1 else {
-            throw FileSystemError.openFileAtPathFailed(path: path)
-        }
-        let pathHash = path.hashValue
-        openFiles[fd] = pathHash
-        return fd
+        return try openFile(path, flags: O_WRONLY | O_CREAT)
     }
 
     /// This method close the POSIX file descriptor.
@@ -156,9 +138,7 @@ extension FileHandler {
     /// - Throws: `FileSystemError.fileIsNotOpen`
     ///
     public func readWholeFile(atFileDescriptor fd: Int32, shouldClose: Bool = false) throws -> Data {
-        guard openFiles[fd] != nil else {
-            throw FileSystemError.fileIsNotOpen(fileDescriptor: fd)
-        }
+        guard openFiles[fd] != nil else { throw FileSystemError.fileIsNotOpen(fileDescriptor: fd) }
         var bytes: [UInt8] = []
         var count = 0
         
@@ -213,13 +193,9 @@ extension FileHandler {
     ///
     public func readBytesOfFile(atFileDescriptor fd: Int32, start: UInt64,
                                 end: UInt64, shouldClose: Bool = false) throws -> Data {
-        guard openFiles[fd] != nil else {
-            throw FileSystemError.fileIsNotOpen(fileDescriptor: fd)
-        }
-        var wouldRead = Int(end - start)
+        guard openFiles[fd] != nil else { throw FileSystemError.fileIsNotOpen(fileDescriptor: fd) }
+        var remaining = Int(end - start)
         var bytes: [UInt8] = []
-        var count = 0
-        
         var bufferSize = 8 * 1024
         let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: bufferSize)
         
@@ -231,18 +207,14 @@ extension FileHandler {
         seek(toOffset: start, descriptor: fd)
         
         repeat {
-            if bufferSize > wouldRead {
-                bufferSize = wouldRead
-            }
-            count = read(fd, buffer, bufferSize)
-            bytes.append(contentsOf: Array(UnsafeBufferPointer(start: buffer, count: count)))
-            wouldRead -= count
-        } while wouldRead > 0
+            let count = min(bufferSize, remaining)
+            let done = read(fd, buffer, count)
+            bytes.append(contentsOf: Array(UnsafeBufferPointer(start: buffer, count: done)))
+            remaining -= done
+        } while remaining > 0
         
         let data = Data(bytes: bytes)
-        if shouldClose {
-            try? self.closeFile(descriptor: fd)
-        }
+        if shouldClose { try? self.closeFile(descriptor: fd) }
         return data
     }
 
@@ -281,20 +253,12 @@ extension FileHandler {
     /// - Note: This method rewrites existing data of the file.
     ///
     @discardableResult
-    public func writeContentInFile(atFileDescriptor fd: Int32,
-                                   offset: UInt64, content: Data,
-                                   shouldClose: Bool = false) throws -> UInt64 {
-        guard let _ = openFiles[fd] else {
-            throw FileSystemError.fileIsNotOpen(fileDescriptor: fd)
-        }
-        
+    public func writeContentInFile(atFileDescriptor fd: Int32, offset: UInt64,
+                                   content: Data, shouldClose: Bool = false) throws -> UInt64 {
+        guard let _ = openFiles[fd] else { throw FileSystemError.fileIsNotOpen(fileDescriptor: fd) }
         seek(toOffset: offset, descriptor: fd)
         let count = writeData(content, to: fd)
-        
-        if shouldClose {
-            try? self.closeFile(descriptor: fd)
-        }
-        
+        if shouldClose { try? self.closeFile(descriptor: fd) }
         return count
     }
 
@@ -312,8 +276,7 @@ extension FileHandler {
     @discardableResult
     public func writeContentToEndOfFile(atPath path: String, content: Data) throws -> UInt64 {
         let descriptor = try openFileForWriting(atPath: path)
-        let count = try writeContentToEndOfFile(atFileDescriptor: descriptor,
-                                                content: content, shouldClose: true)
+        let count = try writeContentToEndOfFile(atFileDescriptor: descriptor, content: content, shouldClose: true)
         return count
     }
 
@@ -331,17 +294,10 @@ extension FileHandler {
     @discardableResult
     public func writeContentToEndOfFile(atFileDescriptor fd: Int32,
                                         content: Data, shouldClose: Bool = false) throws -> UInt64 {
-        guard let _ = openFiles[fd] else {
-            throw FileSystemError.fileIsNotOpen(fileDescriptor: fd)
-        }
-        
+        guard let _ = openFiles[fd] else { throw FileSystemError.fileIsNotOpen(fileDescriptor: fd) }
         seekToEndOfFile(descriptor: fd)
         let count = writeData(content, to: fd)
-        
-        if shouldClose {
-            try? self.closeFile(descriptor: fd)
-        }
-        
+        if shouldClose { try? self.closeFile(descriptor: fd) }
         return count
     }
 
@@ -382,9 +338,7 @@ extension FileHandler {
             ftruncate(fd, Int(offset))
         #endif
         
-        if shouldClose {
-            try? self.closeFile(descriptor: fd)
-        }
+        if shouldClose { try? self.closeFile(descriptor: fd) }
     }
 
 }
@@ -392,6 +346,14 @@ extension FileHandler {
 extension FileHandler {
 
     // MARK: Private methods
+    
+    fileprivate func openFile(_ path: String, flags: Int32) throws -> Int32 {
+        let fd = open(path, flags)
+        guard fd > -1 else { throw FileSystemError.openFileAtPathFailed(path: path) }
+        let pathHash = path.hashValue
+        openFiles[fd] = pathHash
+        return fd
+    }
 
     fileprivate func seekToEndOfFile(descriptor fd: Int32) {
         lseek(fd, 0, SEEK_END)
@@ -406,8 +368,8 @@ extension FileHandler {
     }
 
     fileprivate func writeData(_ data: Data, to descriptor: Int32) -> UInt64 {
-        var wouldWrite = data.count
-        var count = 0
+        var remaining = data.count
+        var done = 0
 
         var bufferSize = 8 * 1024
         let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: bufferSize)
@@ -418,17 +380,16 @@ extension FileHandler {
         }
 
         repeat {
-            if bufferSize > wouldWrite {
-                bufferSize = wouldWrite
-            }
-            let range = Range<Data.Index>(count...(count + (bufferSize - 1)))
+            let count = min(bufferSize, remaining)
+            let upper = done + (count - 1)
+            let range = Range<Data.Index>(done...upper)
             data.copyBytes(to: buffer, from: range)
-            let done = write(descriptor, buffer, bufferSize)
-            count += done
-            wouldWrite -= done
-        } while wouldWrite > 0
-        
-        return UInt64(count)
+            let written = write(descriptor, buffer, count)
+            done += written
+            remaining -= written
+        } while remaining > 0
+
+        return UInt64(done)
     }
 
 }

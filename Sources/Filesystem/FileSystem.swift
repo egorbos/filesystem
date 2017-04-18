@@ -33,8 +33,6 @@ public class FileSystem {
 
     public init() {}
 
-    deinit {}
-
 }
 
 extension FileSystem {
@@ -87,13 +85,13 @@ extension FileSystem {
 
         var type: String
         switch st.st_mode & S_IFMT {
-        case S_IFCHR: type = FileSystemObjectType.characterSpecial.rawValue
-        case S_IFDIR: type = FileSystemObjectType.directory.rawValue
-        case S_IFBLK: type = FileSystemObjectType.blockSpecial.rawValue
-        case S_IFREG: type = FileSystemObjectType.regular.rawValue
-        case S_IFLNK: type = FileSystemObjectType.symbolicLink.rawValue
-        case S_IFSOCK: type = FileSystemObjectType.socket.rawValue
-        default: type = FileSystemObjectType.unknown.rawValue
+            case S_IFCHR: type = FileSystemObjectType.characterSpecial.rawValue
+            case S_IFDIR: type = FileSystemObjectType.directory.rawValue
+            case S_IFBLK: type = FileSystemObjectType.blockSpecial.rawValue
+            case S_IFREG: type = FileSystemObjectType.regular.rawValue
+            case S_IFLNK: type = FileSystemObjectType.symbolicLink.rawValue
+            case S_IFSOCK: type = FileSystemObjectType.socket.rawValue
+            default: type = FileSystemObjectType.unknown.rawValue
         }
 
         attr["type"] = type
@@ -119,9 +117,7 @@ extension FileSystem {
     ///
     public func typeOfObject(atPath path: String) -> FileSystemObjectType? {
         let attributes = try? attributesOfObject(atPath: path)
-        guard let value = attributes?["type"] as? String else {
-            return nil
-        }
+        guard let value = attributes?["type"] as? String else { return nil }
         return FileSystemObjectType(rawValue: value)
     }
 
@@ -134,9 +130,7 @@ extension FileSystem {
     ///
     public func sizeOfObject(atPath path: String) -> UInt64? {
         let attributes = try? attributesOfObject(atPath: path)
-        guard let value = attributes?["size"] as? NSNumber else {
-            return nil
-        }
+        guard let value = attributes?["size"] as? NSNumber else { return nil }
         return value.uint64Value
     }
 
@@ -149,9 +143,7 @@ extension FileSystem {
     ///
     public func accessDateOfObject(atPath path: String) -> Date? {
         let attributes = try? attributesOfObject(atPath: path)
-        guard let value = attributes?["accessDate"] as? Date else {
-            return nil
-        }
+        guard let value = attributes?["accessDate"] as? Date else { return nil }
         return value
     }
 
@@ -164,9 +156,7 @@ extension FileSystem {
     ///
     public func modificationDateOfObject(atPath path: String) -> Date? {
         let attributes = try? attributesOfObject(atPath: path)
-        guard let value = attributes?["modificationDate"] as? Date else {
-            return nil
-        }
+        guard let value = attributes?["modificationDate"] as? Date else { return nil }
         return value
     }
 
@@ -179,9 +169,7 @@ extension FileSystem {
     ///
     public func posixPermissionsOfObject(atPath path: String) -> UInt16? {
         let attributes = try? attributesOfObject(atPath: path)
-        guard let value = attributes?["posixPermissions"] as? NSNumber else {
-            return nil
-        }
+        guard let value = attributes?["posixPermissions"] as? NSNumber else { return nil }
         return value.uint16Value
     }
 
@@ -233,38 +221,28 @@ extension FileSystem {
     /// - Note: this method follow links if recursive is `false`, otherwise not follow links.
     ///
     public func contentsOfDirectory(atPath path: String, recursive: Bool = false) throws -> [String] {
-        guard let dir = opendir(path) else {
-            throw FileSystemError.getDirectoryContentsFailed(path: path)
-        }
+        guard let dir = opendir(path) else { throw FileSystemError.getDirectoryContentsFailed(path: path) }
         
-        defer {
-            closedir(dir)
-        }
+        defer { closedir(dir) }
 
         var children: [String] = []
         var ep = readdir(dir)
 
         while ep != nil {
-            guard let name = ep?.pointee.d_name else {
-                return []
-            }
+            guard let name = ep?.pointee.d_name else { return [] }
 
             var nameBuf: [CChar] = []
             let mirror = Mirror(reflecting: name)
 
             for child in mirror.children {
-                guard let c = child.value as? Int8 else {
-                    return []
-                }
+                guard let c = child.value as? Int8 else { return [] }
                 nameBuf.append(c)
             }
             nameBuf.append(0)
 
             let child = String(cString: nameBuf)
             ep = readdir(dir)
-            if child != "." && child != ".." {
-                children.append(child)
-            }
+            if child != "." && child != ".." { children.append(child) }
         }
 
         return children
@@ -295,8 +273,10 @@ extension FileSystem {
             }
         }
 
-        guard existsObject(atPath: path) == false,
-              directoryReadyForWrite(path.deletingLastPathComponent) else {
+        guard
+            existsObject(atPath: path) == false,
+            directoryReadyForWrite(path.deletingLastPathComponent)
+        else {
             throw FileSystemError.createSymlinkFailed(from: object, to: path)
         }
 
@@ -332,8 +312,10 @@ extension FileSystem {
             }
         }
 
-        guard existsObject(atPath: path) == false,
-              directoryReadyForWrite(path.deletingLastPathComponent) else {
+        guard
+            existsObject(atPath: path) == false,
+            directoryReadyForWrite(path.deletingLastPathComponent)
+        else {
             throw FileSystemError.createHardlinkFailed(from: object, to: path)
         }
 
@@ -397,8 +379,10 @@ extension FileSystem {
             }
         }
 
-        guard existsObject(atPath: dstPath) == false,
-              directoryReadyForWrite(dstPath.deletingLastPathComponent) else {
+        guard
+            existsObject(atPath: dstPath) == false,
+            directoryReadyForWrite(dstPath.deletingLastPathComponent)
+        else {
             throw FileSystemError.moveObjectFailed(from: srcPath, to: dstPath)
         }
 
@@ -439,8 +423,10 @@ extension FileSystem {
             }
         }
 
-        guard existsObject(atPath: dstPath) == false,
-              directoryReadyForWrite(dstPath.deletingLastPathComponent) else {
+        guard
+            existsObject(atPath: dstPath) == false,
+            directoryReadyForWrite(dstPath.deletingLastPathComponent)
+        else {
             throw FileSystemError.copyObjectFailed(from: srcPath, to: dstPath)
         }
 
@@ -488,18 +474,12 @@ extension FileSystem {
     public func createFile(atPath path: String, content: Data?) -> Bool {
         let modes = S_IROTH | S_IRGRP | S_IRUSR | S_IWOTH | S_IWGRP | S_IWUSR
         let fd = open(path, O_WRONLY | O_CREAT, modes)
-
-        defer {
-            close(fd)
-        }
+       
+        defer { close(fd) }
         
-        guard fd > -1 else {
-            return false
-        }
+        guard fd > -1 else { return false }
         
-        guard let data = content else {
-            return true
-        }
+        guard let data = content else { return true }
 
         let bufferSize = data.count
         let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: bufferSize)
@@ -529,13 +509,13 @@ extension FileSystem {
 
     fileprivate func symboliclink(atPath path: String, withDestinationPath dstPath: String) throws {
         if symlink(dstPath, path) != 0 {
-            throw NSError(domain: "com.swixbase.error", code: Int(errno), userInfo: nil)
+            throw NSError(domain: "com.filesystem.error", code: Int(errno), userInfo: nil)
         }
     }
 
     fileprivate func hardlink(atPath srcPath: String, toPath dstPath: String) throws {
         if link(srcPath, dstPath) != 0 {
-            throw NSError(domain: "com.swixbase.error", code: Int(errno), userInfo: nil)
+            throw NSError(domain: "com.filesystem.error", code: Int(errno), userInfo: nil)
         }
     }
 
@@ -547,23 +527,25 @@ extension FileSystem {
     fileprivate func removeItem(atPath path: String) throws {
         guard let type = typeOfObject(atPath: path), type == .directory else {
             guard unlink(path) == 0 else {
-                throw NSError(domain: "com.swixbase.error", code: Int(errno), userInfo: nil)
+                throw NSError(domain: "com.filesystem.error", code: Int(errno), userInfo: nil)
             }
             return
         }
-
         let children = try contentsOfDirectory(atPath: path)
         for child in children {
             try removeItem(atPath: "\(path)/\(child)")
         }
         guard rmdir(path) == 0 else {
-            throw NSError(domain: "com.swixbase.error", code: Int(errno), userInfo: nil)
+            throw NSError(domain: "com.filesystem.error", code: Int(errno), userInfo: nil)
         }
         return
     }
 
     fileprivate func copyItem(atPath srcPath: String, toPath dstPath: String) throws {
         guard let type = typeOfObject(atPath: srcPath), type == .directory else {
+            var st = stat()
+            var done = 0
+            
             let bufferSize = 8 * 1024
             let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: bufferSize)
 
@@ -571,34 +553,28 @@ extension FileSystem {
                 buffer.deinitialize(count: bufferSize)
                 buffer.deallocate(capacity: bufferSize)
             }
-            
-            var st = stat()
-            var x = 0
-            var i = 0
 
             stat(srcPath, &st)
 
             let fdIn = open(srcPath, O_RDONLY)
             let fdOut = open(dstPath, O_WRONLY | O_CREAT, st.st_mode)
-            
+
             defer {
                 close(fdOut)
                 close(fdIn)
             }
 
-            while i < Int(st.st_size) {
-                x = read(fdIn, buffer, bufferSize)
-                write(fdOut, buffer, x)
-                i += x
+            while done < Int(st.st_size) {
+                let count = read(fdIn, buffer, bufferSize)
+                write(fdOut, buffer, count)
+                done += count
             }
 
             return
         }
 
         try createDirectory(atPath: dstPath)
-
         let children = try contentsOfDirectory(atPath: srcPath)
-
         for child in children {
             try copyItem(atPath: "\(srcPath)/\(child)", toPath: "\(dstPath)/\(child)")
         }
