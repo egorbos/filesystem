@@ -509,13 +509,13 @@ extension FileSystem {
 
     fileprivate func symboliclink(atPath path: String, withDestinationPath dstPath: String) throws {
         if symlink(dstPath, path) != 0 {
-            throw NSError(domain: "com.filesystem.error", code: Int(errno), userInfo: nil)
+            throw NSError(domain: "com.swixbase.filesystem.error", code: Int(errno), userInfo: nil)
         }
     }
 
     fileprivate func hardlink(atPath srcPath: String, toPath dstPath: String) throws {
         if link(srcPath, dstPath) != 0 {
-            throw NSError(domain: "com.filesystem.error", code: Int(errno), userInfo: nil)
+            throw NSError(domain: "com.swixbase.filesystem.error", code: Int(errno), userInfo: nil)
         }
     }
 
@@ -527,7 +527,7 @@ extension FileSystem {
     fileprivate func removeItem(atPath path: String) throws {
         guard let type = typeOfObject(atPath: path), type == .directory else {
             guard unlink(path) == 0 else {
-                throw NSError(domain: "com.filesystem.error", code: Int(errno), userInfo: nil)
+                throw NSError(domain: "com.swixbase.filesystem.error", code: Int(errno), userInfo: nil)
             }
             return
         }
@@ -536,9 +536,8 @@ extension FileSystem {
             try removeItem(atPath: "\(path)/\(child)")
         }
         guard rmdir(path) == 0 else {
-            throw NSError(domain: "com.filesystem.error", code: Int(errno), userInfo: nil)
+            throw NSError(domain: "com.swixbase.filesystem.error", code: Int(errno), userInfo: nil)
         }
-        return
     }
 
     fileprivate func copyItem(atPath srcPath: String, toPath dstPath: String) throws {

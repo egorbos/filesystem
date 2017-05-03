@@ -158,9 +158,7 @@ extension FileHandler {
         } while count > 0
         
         let data = Data(bytes: bytes)
-        if shouldClose {
-            try? self.closeFile(descriptor: fd)
-        }
+        if shouldClose { try? self.closeFile(descriptor: fd) }
         return data
     }
 
