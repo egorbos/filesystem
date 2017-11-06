@@ -2,10 +2,14 @@ coverage:
   precision: 2
   round: down
   range: 0...100
-
+  status:
+    changes: false
+    patch: true
+    project: true
   ignore:
     - "Tests/.*"
 
 comment:
-  layout: "header, diff, changes"
   behavior: default
+  layout: header, diff
+  require_changes: false
